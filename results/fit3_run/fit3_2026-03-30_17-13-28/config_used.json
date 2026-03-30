@@ -14,12 +14,5 @@
     "enabled": false,
     "sigma": 0.002,
     "n_iter": 200
-  },
-  "debug": {
-  "enabled": false
-  },
-  "plots": {
-  "save_preprocess": true,
-  "save_final_fit": true
   }
 }

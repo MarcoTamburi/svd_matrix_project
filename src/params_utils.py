@@ -68,7 +68,11 @@ def stage_free_mask(pack: ParamPack, stage: str) -> np.ndarray:
     if stage not in {"1", "2"}:
         raise ValueError("stage must be '1' or '2'")
 
-    active = np.array([(s == stage or s == "both") for s in pack.stage_full], dtype=bool)
+    stage_values = np.array([str(s).strip().lower() for s in pack.stage_full])
+    active = np.array(
+        [(s == stage or s == "both") for s in stage_values],
+        dtype=bool
+    )
     free_mask = active & pack.vary_full
     return free_mask
 

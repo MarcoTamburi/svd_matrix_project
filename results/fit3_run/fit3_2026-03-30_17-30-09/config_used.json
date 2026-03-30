@@ -16,10 +16,10 @@
     "n_iter": 200
   },
   "debug": {
-  "enabled": false
+    "enabled": false
   },
   "plots": {
-  "save_preprocess": true,
-  "save_final_fit": true
+    "save_preprocess": true,
+    "save_final_fit": true
   }
 }
