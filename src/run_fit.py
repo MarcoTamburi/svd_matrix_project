@@ -4,7 +4,7 @@ from fit3 import run_fit3
 
 def run(config_path: str, n_components: int):
     run_metadata = {
-        "run_timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "run_timestamp": datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
         "config_path": config_path,
         "n_components": n_components,
     }

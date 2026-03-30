@@ -78,10 +78,63 @@ def estimate_edge_coefficients(U_prime, spectral_matrix):
 
     return coeffs, debug_data
 
+def save_preprocessing_outputs(out_dir, wavelengths, preprocess_debug):
+    import pandas as pd
+    from matplotlib import pyplot as plt
+
+    folded_original = preprocess_debug["folded_original"]
+    folded_predicted = preprocess_debug["folded_predicted"]
+    unfolded_original = preprocess_debug["unfolded_original"]
+    unfolded_predicted = preprocess_debug["unfolded_predicted"]
+
+    folded_df = pd.DataFrame({
+        "wavelength": wavelengths,
+        "original": folded_original,
+        "predicted": folded_predicted,
+        "residual": folded_original - folded_predicted,
+    })
+    folded_df.to_csv(out_dir / "preprocess_folded_data.csv", index=False)
+
+    unfolded_df = pd.DataFrame({
+        "wavelength": wavelengths,
+        "original": unfolded_original,
+        "predicted": unfolded_predicted,
+        "residual": unfolded_original - unfolded_predicted,
+    })
+    unfolded_df.to_csv(out_dir / "preprocess_unfolded_data.csv", index=False)
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(wavelengths, folded_original[::-1], label="original folded spectrum", marker="o")
+    plt.plot(wavelengths, folded_predicted[::-1], label="predicted folded spectrum")
+    plt.title("Preprocessing - Folded spectrum")
+    plt.xlabel("Wavelength (nm)")
+    plt.ylabel("Absorbance")
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(out_dir / "preprocess_folded_fit.png", dpi=300)
+    plt.close()
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(wavelengths, unfolded_original[::-1], label="original unfolded spectrum", marker="o")
+    plt.plot(wavelengths, unfolded_predicted[::-1], label="predicted unfolded spectrum")
+    plt.title("Preprocessing - Unfolded spectrum")
+    plt.xlabel("Wavelength (nm)")
+    plt.ylabel("Absorbance")
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(out_dir / "preprocess_unfolded_fit.png", dpi=300)
+    plt.close()
+
 def run_fit3(config_path: str, run_metadata: dict):
     cfg = load_config(config_path)
 
-    out_dir = Path(cfg["output_dir"])
+    base_out_dir = Path(cfg["output_dir"])
+    base_out_dir.mkdir(parents=True, exist_ok=True)
+
+    run_name = f"fit3_{run_metadata['run_timestamp'].replace(':', '-').replace(' ', '_')}"
+    out_dir = base_out_dir / run_name
     out_dir.mkdir(parents=True, exist_ok=True)
 
     # salva config usata
@@ -100,6 +153,8 @@ def run_fit3(config_path: str, run_metadata: dict):
         U_prime,
         spectral_matrix
     )
+
+    save_preprocessing_outputs(out_dir, wavelengths, preprocess_debug)
 
     with open(out_dir / "preprocess_coeffs.json", "w", encoding="utf-8") as f:
         json.dump(preprocess_coeffs, f, indent=2)
@@ -170,6 +225,7 @@ def run_fit3(config_path: str, run_metadata: dict):
         "spectral_matrix_shape": list(spectral_matrix.shape),
         "wavelengths_shape": list(wavelengths.shape),
         "preprocess_coeffs": preprocess_coeffs,
+        "output_dir": str(out_dir),
     }
 
     with open(out_dir / "fit_summary.json", "w", encoding="utf-8") as f:
