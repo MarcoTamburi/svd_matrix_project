@@ -17,6 +17,10 @@ from model_fit3 import (
     predict_vprime_from_params,
     residuals_fit3,
 )
+from fit_plotting import (
+    save_final_fit_plots,
+    save_final_fit_data,
+)
 
 
 def load_config(path: str) -> dict:
@@ -25,9 +29,6 @@ def load_config(path: str) -> dict:
 
 
 def estimate_edge_coefficients(U_prime, spectral_matrix):
-    # spectral_matrix shape attesa: (n_lambda, n_temperatures)
-    # U_prime shape attesa: (n_lambda, 3)
-
     if U_prime.ndim != 2:
         raise ValueError(f"U_prime deve essere 2D, shape trovata: {U_prime.shape}")
 
@@ -47,13 +48,11 @@ def estimate_edge_coefficients(U_prime, spectral_matrix):
 
     reg = LinearRegression()
 
-    # folded = prima colonna della matrice spettrale
     spttr_F = spectral_matrix[:, 0]
     reg.fit(U_prime, spttr_F)
     C11, C21, C31 = reg.coef_
     predicted_F = reg.predict(U_prime)
 
-    # unfolded = ultima colonna della matrice spettrale
     spttr_U = spectral_matrix[:, -1]
     reg.fit(U_prime, spttr_U)
     C13, C23, C33 = reg.coef_
@@ -128,51 +127,6 @@ def save_preprocessing_outputs(out_dir, wavelengths, preprocess_debug):
     plt.close()
 
 
-def save_final_fit_plots(out_dir, T, V_prime, x_full, pack):
-    from matplotlib import pyplot as plt
-
-    _, _, f_pred = predict_vprime_from_params(T, x_full, pack)
-
-    labels = ["V1_prime", "V2_prime", "V3_prime"]
-
-    fig, axs = plt.subplots(3, 1, figsize=(10, 8), sharex=True)
-
-    for i in range(3):
-        axs[i].plot(T - 273.15, V_prime[i], "o", label="Experimental data")
-        axs[i].plot(T - 273.15, f_pred[i], "-", label="Global fit")
-        axs[i].set_ylabel(labels[i])
-        axs[i].grid(True)
-        axs[i].legend()
-
-    axs[2].set_xlabel("Temperature (°C)")
-    plt.suptitle("Final global fit")
-    plt.tight_layout(rect=[0, 0, 1, 0.96])
-    plt.savefig(out_dir / "final_global_fit.png", dpi=300)
-    plt.close()
-
-    return f_pred
-
-
-def save_final_fit_data(out_dir, T, V_prime, f_pred):
-    import pandas as pd
-
-    df = pd.DataFrame({
-        "T_kelvin": T,
-        "T_celsius": T - 273.15,
-        "V1_exp": V_prime[0],
-        "V1_fit": f_pred[0],
-        "V1_resid": V_prime[0] - f_pred[0],
-        "V2_exp": V_prime[1],
-        "V2_fit": f_pred[1],
-        "V2_resid": V_prime[1] - f_pred[1],
-        "V3_exp": V_prime[2],
-        "V3_fit": f_pred[2],
-        "V3_resid": V_prime[2] - f_pred[2],
-    })
-
-    df.to_csv(out_dir / "final_fit_curves.csv", index=False)
-
-
 def run_fit3(config_path: str, run_metadata: dict):
     cfg = load_config(config_path)
 
@@ -203,7 +157,7 @@ def run_fit3(config_path: str, run_metadata: dict):
         spectral_matrix
     )
 
-    T = T + 273.15  # converti da Celsius a Kelvin
+    T = T + 273.15
 
     if save_preprocess_plots_flag:
         save_preprocessing_outputs(out_dir, wavelengths, preprocess_debug)
@@ -238,10 +192,8 @@ def run_fit3(config_path: str, run_metadata: dict):
 
         for i, name in enumerate(stage1_names):
             x_try = x_ref.copy()
-
             step = eps_rel * max(1.0, abs(x_ref[i]))
             x_try[i] += step
-
             r_try = fun1(x_try)
             n_try = np.linalg.norm(r_try)
 
