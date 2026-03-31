@@ -18,8 +18,8 @@ from model_fit3 import (
     residuals_fit3,
 )
 from fit_plotting import (
-    save_final_fit_plots,
-    save_final_fit_data,
+    save_stage1_fit_outputs,
+    save_final_fit_outputs,
 )
 
 
@@ -222,6 +222,9 @@ def run_fit3(config_path: str, run_metadata: dict):
     x_full_1 = inject_free(pack, free_mask_1, res1.x)
     write_params_csv(pack, str(out_dir / "params_after_stage1.csv"), x_full_1)
 
+    if save_final_fit_plots_flag:
+        save_stage1_fit_outputs(out_dir, T, V_prime, x_full_1, pack)
+
     pack.x0_full = x_full_1
 
     if "value" in pack.df.columns:
@@ -252,15 +255,13 @@ def run_fit3(config_path: str, run_metadata: dict):
     x_full_2 = inject_free(pack, free_mask_2, res2.x)
 
     if save_final_fit_plots_flag:
-        f_pred_final = save_final_fit_plots(out_dir, T, V_prime, x_full_2, pack)
+        f_pred_final = save_final_fit_outputs(out_dir, T, V_prime, x_full_2, pack)
     else:
         _, _, f_pred_final = predict_vprime_from_params(T, x_full_2, pack)
 
     final_params = {
         name: float(x_full_2[idx]) for name, idx in pack.name_to_i.items()
     }
-
-    save_final_fit_data(out_dir, T, V_prime, f_pred_final)
 
     residuals_final = V_prime - f_pred_final
     chi2 = float(np.sum(residuals_final ** 2))
