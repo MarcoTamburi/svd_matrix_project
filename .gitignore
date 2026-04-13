@@ -24,30 +24,7 @@ data/
 *.log
 
 # VS Code
-.vscode/# Python cache
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-
-# Virtual environments
-.venv/
-venv/
-env/
-
-# Jupyter
-.ipynb_checkpoints/
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Output del progetto
-results/
-data/
-
-# Config locali (se mai li userai)
-*.log
-
-# VS Code
 .vscode/
+
+# Notebooks vecchio
+notebooks/crea_matrice_conT.ipynb
