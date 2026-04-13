@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 
 
-def load_fit3_inputs(
+def load_fit_inputs(
     spectra_matrix_path: str,
     V_prime_path: str,
     U_prime_path: str

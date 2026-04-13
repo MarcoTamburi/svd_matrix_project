@@ -1,3 +1,5 @@
+# src/model_fit3.py
+
 import numpy as np
 
 R = 1.987  # gas constant in cal/(mol*K)

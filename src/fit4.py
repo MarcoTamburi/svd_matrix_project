@@ -13,9 +13,9 @@ from params_utils import (
     update_pack_values,
 )
 from io_utils import load_fit_inputs
-from model_fit3 import (
+from model_fit4 import (
     predict_vprime_from_params,
-    residuals_fit3,
+    residuals_fit4,
 )
 from fit_plotting import (
     save_stage1_fit_outputs,
@@ -41,30 +41,32 @@ def estimate_edge_coefficients(U_prime, spectral_matrix):
             f"{U_prime.shape[0]} vs {spectral_matrix.shape[0]} righe"
         )
 
-    if U_prime.shape[1] != 3:
+    if U_prime.shape[1] != 4:
         raise ValueError(
-            f"Per fit3 U_prime deve avere 3 colonne, trovate: {U_prime.shape[1]}"
+            f"Per fit4 U_prime deve avere 4 colonne, trovate: {U_prime.shape[1]}"
         )
 
     reg = LinearRegression()
 
     spttr_F = spectral_matrix[:, 0]
     reg.fit(U_prime, spttr_F)
-    C11, C21, C31 = reg.coef_
+    C11, C21, C31, C41 = reg.coef_
     predicted_F = reg.predict(U_prime)
 
     spttr_U = spectral_matrix[:, -1]
     reg.fit(U_prime, spttr_U)
-    C13, C23, C33 = reg.coef_
+    C14, C24, C34, C44 = reg.coef_
     predicted_U = reg.predict(U_prime)
 
     coeffs = {
         "C11": float(C11),
         "C21": float(C21),
         "C31": float(C31),
-        "C13": float(C13),
-        "C23": float(C23),
-        "C33": float(C33),
+        "C41": float(C41),
+        "C14": float(C14),
+        "C24": float(C24),
+        "C34": float(C34),
+        "C44": float(C44),
     }
 
     debug_data = {
@@ -127,7 +129,7 @@ def save_preprocessing_outputs(out_dir, wavelengths, preprocess_debug):
     plt.close()
 
 
-def run_fit3(config_path: str, run_metadata: dict):
+def run_fit4(config_path: str, run_metadata: dict):
     cfg = load_config(config_path)
 
     debug_enabled = cfg.get("debug", {}).get("enabled", False)
@@ -137,7 +139,7 @@ def run_fit3(config_path: str, run_metadata: dict):
     base_out_dir = Path(cfg["output_dir"])
     base_out_dir.mkdir(parents=True, exist_ok=True)
 
-    run_name = f"fit3_{run_metadata['run_timestamp'].replace(':', '-').replace(' ', '_')}"
+    run_name = f"fit4_{run_metadata['run_timestamp'].replace(':', '-').replace(' ', '_')}"
     out_dir = base_out_dir / run_name
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -183,7 +185,7 @@ def run_fit3(config_path: str, run_metadata: dict):
 
     def fun1(x_free):
         x_full = inject_free(pack, free_mask_1, x_free)
-        return residuals_fit3(x_full, T, V_prime, pack)
+        return residuals_fit4(x_full, T, V_prime, pack)
 
     def debug_stage1_sensitivity(x_ref, eps_rel=1e-4):
         r0 = fun1(x_ref)
@@ -235,7 +237,7 @@ def run_fit3(config_path: str, run_metadata: dict):
 
     def fun2(x_free):
         x_full = inject_free(pack, free_mask_2, x_free)
-        return residuals_fit3(x_full, T, V_prime, pack)
+        return residuals_fit4(x_full, T, V_prime, pack)
 
     res2 = least_squares(
         fun2,
