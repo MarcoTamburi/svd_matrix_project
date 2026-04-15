@@ -16,21 +16,6 @@ def plot_reconstructed_spectrum(
 ):
     """
     Plotta lo spettro ricostruito a una specifica temperatura.
-
-    Parameters
-    ----------
-    T : np.ndarray, shape (n_T,)
-        Temperature in Kelvin.
-    U_prime : np.ndarray, shape (n_wavelengths, n_components)
-        Matrice U' usata per la ricostruzione.
-    x_full : np.ndarray
-        Parametri finali del fit.
-    pack : ParamPack
-        Struttura con mapping nomi-parametri.
-    wavelengths : np.ndarray, shape (n_wavelengths,)
-        Griglia delle lunghezze d'onda.
-    idx : int
-        Indice della temperatura selezionata.
     """
     result = reconstruct_spectrum_at_index(T, U_prime, x_full, pack, idx)
 
@@ -39,14 +24,15 @@ def plot_reconstructed_spectrum(
     T_celsius = T_kelvin - 273.15
     M_vec = result["M"]
 
+    populations_text = ", ".join(
+        [f"M{i+1}={value:.3f}" for i, value in enumerate(M_vec)]
+    )
+
     plt.figure(figsize=(10, 6))
     plt.plot(wavelengths, spectrum, label=f"Reconstructed spectrum at {T_celsius:.1f} °C")
     plt.xlabel("Wavelength (nm)")
     plt.ylabel("CD signal")
-    plt.title(
-        f"Reconstructed spectrum | "
-        f"M1={M_vec[0]:.3f}, M2={M_vec[1]:.3f}, M3={M_vec[2]:.3f}"
-    )
+    plt.title(f"Reconstructed spectrum | {populations_text}")
     plt.grid(True)
     plt.legend()
     plt.tight_layout()
@@ -63,19 +49,6 @@ def plot_spectrum_comparison(
     """
     Plotta il confronto tra spettro sperimentale e ricostruito
     alla temperatura selezionata.
-
-    Parameters
-    ----------
-    spectral_matrix : np.ndarray, shape (n_wavelengths, n_T)
-        Matrice spettrale sperimentale.
-    spectra_pred : np.ndarray, shape (n_wavelengths, n_T)
-        Matrice spettrale ricostruita.
-    T : np.ndarray, shape (n_T,)
-        Temperature in Kelvin.
-    wavelengths : np.ndarray, shape (n_wavelengths,)
-        Griglia delle lunghezze d'onda.
-    idx : int
-        Indice della temperatura selezionata.
     """
     result = compare_experimental_vs_reconstructed_at_index(
         spectral_matrix=spectral_matrix,

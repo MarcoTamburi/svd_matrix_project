@@ -1,16 +1,52 @@
 import numpy as np
 
-from model_fit3 import calc_M_2p, build_C_matrix, predict_vprime_from_params
+from model_fit3 import (
+    build_C_matrix as build_C_matrix_fit3,
+    predict_vprime_from_params as predict_vprime_from_params_fit3,
+)
+from model_fit4 import (
+    build_C_matrix as build_C_matrix_fit4,
+    predict_vprime_from_params as predict_vprime_from_params_fit4,
+)
+
+
+def get_n_components_from_pack(pack):
+    c_names = [name for name in pack.names if name.startswith("C")]
+    if not c_names:
+        raise ValueError("Impossibile determinare n_components: nessun coefficiente C trovato.")
+
+    max_index = 0
+    for name in c_names:
+        if len(name) != 3 or not name[1:].isdigit():
+            continue
+        i = int(name[1])
+        j = int(name[2])
+        max_index = max(max_index, i, j)
+
+    if max_index not in (3, 4):
+        raise ValueError(f"Numero di componenti non supportato nella reconstruction: {max_index}")
+
+    return max_index
+
+
+def get_model_functions(pack):
+    n_components = get_n_components_from_pack(pack)
+
+    if n_components == 3:
+        return build_C_matrix_fit3, predict_vprime_from_params_fit3
+    elif n_components == 4:
+        return build_C_matrix_fit4, predict_vprime_from_params_fit4
+    else:
+        raise ValueError(f"Numero di componenti non supportato: {n_components}")
 
 
 def reconstruct_state_spectra(U_prime, x_full, pack):
     """
-    Ricostruisce gli spettri puri dei tre stati:
-    folded, intermediate, unfolded.
+    Ricostruisce gli spettri puri di tutti gli stati termodinamici.
 
     Parameters
     ----------
-    U_prime : np.ndarray, shape (n_wavelengths, 3)
+    U_prime : np.ndarray, shape (n_wavelengths, n_components)
     x_full : np.ndarray
     pack : ParamPack
 
@@ -18,117 +54,59 @@ def reconstruct_state_spectra(U_prime, x_full, pack):
     -------
     dict
         {
-            "s_f": array (n_wavelengths,),
-            "s_i": array (n_wavelengths,),
-            "s_u": array (n_wavelengths,),
-            "C": array (3, 3)
+            "state_spectra": {
+                "state_1": array (...,),
+                ...
+            },
+            "C": array (n_components, n_components)
         }
     """
+    build_C_matrix, _ = get_model_functions(pack)
     C = build_C_matrix(x_full, pack)
 
-    s_f = U_prime @ C[:, 0]
-    s_i = U_prime @ C[:, 1]
-    s_u = U_prime @ C[:, 2]
+    n_components = C.shape[1]
+    state_spectra = {}
+
+    for j in range(n_components):
+        state_spectra[f"state_{j+1}"] = U_prime @ C[:, j]
 
     return {
-        "s_f": s_f,
-        "s_i": s_i,
-        "s_u": s_u,
+        "state_spectra": state_spectra,
         "C": C,
     }
 
 
 def compute_populations(T, x_full, pack):
     """
-    Calcola le popolazioni M(T) dei tre stati.
-
-    Parameters
-    ----------
-    T : np.ndarray, shape (n_T,)
-        Temperature in Kelvin
-    x_full : np.ndarray
-    pack : ParamPack
-
-    Returns
-    -------
-    np.ndarray, shape (3, n_T)
-        M(T) = [M1, M2, M3]
+    Calcola le popolazioni M(T) di tutti gli stati.
     """
-    Tm1 = float(x_full[pack.name_to_i["Tm1"]])
-    Tm2 = float(x_full[pack.name_to_i["Tm2"]])
-    dH1 = float(x_full[pack.name_to_i["dH1"]])
-    dH2 = float(x_full[pack.name_to_i["dH2"]])
-
-    M = calc_M_2p(T, Tm1, Tm2, dH1, dH2)
+    _, predict_vprime_from_params = get_model_functions(pack)
+    _, M, _ = predict_vprime_from_params(T, x_full, pack)
     return M
 
 
 def reconstruct_all_spectra(T, U_prime, x_full, pack):
     """
     Ricostruisce tutti gli spettri su tutta la griglia di temperatura.
-
-    Parameters
-    ----------
-    T : np.ndarray, shape (n_T,)
-        Temperature in Kelvin
-    U_prime : np.ndarray, shape (n_wavelengths, 3)
-    x_full : np.ndarray
-    pack : ParamPack
-
-    Returns
-    -------
-    dict
-        {
-            "spectra_pred": array (n_wavelengths, n_T),
-            "V_pred": array (3, n_T),
-            "M": array (3, n_T),
-            "state_spectra": {
-                "s_f": ...,
-                "s_i": ...,
-                "s_u": ...
-            }
-        }
     """
+    _, predict_vprime_from_params = get_model_functions(pack)
     _, M, V_pred = predict_vprime_from_params(T, x_full, pack)
     spectra_pred = U_prime @ V_pred
 
-    state_spectra = reconstruct_state_spectra(U_prime, x_full, pack)
+    state_result = reconstruct_state_spectra(U_prime, x_full, pack)
 
     return {
         "spectra_pred": spectra_pred,
         "V_pred": V_pred,
         "M": M,
-        "state_spectra": {
-            "s_f": state_spectra["s_f"],
-            "s_i": state_spectra["s_i"],
-            "s_u": state_spectra["s_u"],
-        }
+        "state_spectra": state_result["state_spectra"],
+        "C": state_result["C"],
     }
 
 
 def reconstruct_spectrum_at_index(T, U_prime, x_full, pack, idx):
     """
     Ricostruisce lo spettro a una specifica temperatura identificata da indice.
-
-    Parameters
-    ----------
-    T : np.ndarray, shape (n_T,)
-        Temperature in Kelvin
-    U_prime : np.ndarray, shape (n_wavelengths, 3)
-    x_full : np.ndarray
-    pack : ParamPack
-    idx : int
-        Indice della temperatura selezionata
-
-    Returns
-    -------
-    dict
-        {
-            "T_kelvin": float,
-            "M": array (3,),
-            "V": array (3,),
-            "spectrum": array (n_wavelengths,)
-        }
     """
     result = reconstruct_all_spectra(T, U_prime, x_full, pack)
 
@@ -144,7 +122,6 @@ def reconstruct_spectrum_at_index(T, U_prime, x_full, pack, idx):
     }
 
 
-
 def compare_experimental_vs_reconstructed_at_index(
     spectral_matrix,
     spectra_pred,
@@ -154,31 +131,6 @@ def compare_experimental_vs_reconstructed_at_index(
     """
     Estrae spettro sperimentale, spettro ricostruito, residuo e metriche
     per una specifica temperatura identificata da idx.
-
-    Parameters
-    ----------
-    spectral_matrix : np.ndarray, shape (n_wavelengths, n_T)
-        Matrice spettrale sperimentale.
-    spectra_pred : np.ndarray, shape (n_wavelengths, n_T)
-        Matrice spettrale ricostruita dal modello.
-    T : np.ndarray, shape (n_T,)
-        Temperature in Kelvin.
-    idx : int
-        Indice della temperatura selezionata.
-
-    Returns
-    -------
-    dict
-        {
-            "idx": int,
-            "T_kelvin": float,
-            "spectrum_exp": array (n_wavelengths,),
-            "spectrum_pred": array (n_wavelengths,),
-            "residual": array (n_wavelengths,),
-            "rmse": float,
-            "mae": float,
-            "max_abs_error": float
-        }
     """
     if idx < 0 or idx >= spectral_matrix.shape[1]:
         raise IndexError(
@@ -225,26 +177,6 @@ def compute_reconstruction_metrics_over_T(
 ):
     """
     Calcola le metriche di ricostruzione per tutte le temperature.
-
-    Parameters
-    ----------
-    spectral_matrix : np.ndarray, shape (n_wavelengths, n_T)
-        Matrice spettrale sperimentale.
-    spectra_pred : np.ndarray, shape (n_wavelengths, n_T)
-        Matrice spettrale ricostruita dal modello.
-    T : np.ndarray, shape (n_T,)
-        Temperature in Kelvin.
-
-    Returns
-    -------
-    dict
-        {
-            "T_kelvin": array (n_T,),
-            "T_celsius": array (n_T,),
-            "rmse": array (n_T,),
-            "mae": array (n_T,),
-            "max_abs_error": array (n_T,)
-        }
     """
     if spectral_matrix.shape != spectra_pred.shape:
         raise ValueError(

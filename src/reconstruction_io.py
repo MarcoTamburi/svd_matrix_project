@@ -1,34 +1,23 @@
 from pathlib import Path
-import json
 
 from fit3 import load_config
-from io_utils import load_fit3_inputs
+from io_utils import load_fit_inputs
 from params_utils import read_params_csv
 
 
-def find_latest_fit3_run(results_dir):
+def find_latest_run(results_dir, n_components):
     """
-    Trova la run fit3 più recente dentro results/fit3_run.
-
-    Parameters
-    ----------
-    results_dir : str or Path
-        Cartella che contiene le run, ad esempio:
-        results/fit3_run
-
-    Returns
-    -------
-    Path
-        Path della cartella run più recente.
+    Trova la run più recente dentro results/fit{n_components}_run.
     """
     results_dir = Path(results_dir)
 
     if not results_dir.exists():
         raise FileNotFoundError(f"Results directory non trovata: {results_dir}")
 
+    prefix = f"fit{n_components}_"
     run_dirs = [
         p for p in results_dir.iterdir()
-        if p.is_dir() and p.name.startswith("fit3_")
+        if p.is_dir() and p.name.startswith(prefix)
     ]
 
     if not run_dirs:
@@ -40,9 +29,9 @@ def find_latest_fit3_run(results_dir):
     return latest_run
 
 
-def load_completed_fit3_run(run_dir):
+def load_completed_run(run_dir):
     """
-    Carica una run già completata del fit3 senza rieseguire il fit.
+    Carica una run già completata senza rieseguire il fit.
     """
     run_dir = Path(run_dir)
 
@@ -62,12 +51,20 @@ def load_completed_fit3_run(run_dir):
     reconstruction_dir.mkdir(parents=True, exist_ok=True)
 
     cfg = load_config(str(config_used_path))
+
+    project_root = Path(__file__).resolve().parents[1]
+    config_dir = project_root / "configs"
+
     pack = read_params_csv(str(params_final_path))
 
-    T, V_prime, U_prime, spectral_matrix, wavelengths = load_fit3_inputs(
-        cfg["data"]["spectra_matrix_path"],
-        cfg["data"]["V_prime_path"],
-        cfg["data"]["U_prime_path"],
+    spectra_matrix_path = (config_dir / cfg["data"]["spectra_matrix_path"]).resolve()
+    v_prime_path = (config_dir / cfg["data"]["V_prime_path"]).resolve()
+    u_prime_path = (config_dir / cfg["data"]["U_prime_path"]).resolve()
+
+    T, V_prime, U_prime, spectral_matrix, wavelengths = load_fit_inputs(
+        str(spectra_matrix_path),
+        str(v_prime_path),
+        str(u_prime_path),
     )
 
     T = T + 273.15
@@ -86,10 +83,9 @@ def load_completed_fit3_run(run_dir):
         "wavelengths": wavelengths,
     }
 
-
-def load_latest_completed_fit3_run(results_dir):
+def load_latest_completed_run(results_dir, n_components):
     """
-    Trova e carica automaticamente la run fit3 più recente.
+    Trova e carica automaticamente la run più recente per il numero di componenti scelto.
     """
-    latest_run_dir = find_latest_fit3_run(results_dir)
-    return load_completed_fit3_run(latest_run_dir)
+    latest_run_dir = find_latest_run(results_dir, n_components)
+    return load_completed_run(latest_run_dir)
