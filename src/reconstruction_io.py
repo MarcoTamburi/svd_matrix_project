@@ -2,7 +2,7 @@ from pathlib import Path
 
 from fit3 import load_config
 from io_utils import load_fit_inputs
-from params_utils import read_params_csv
+from params_utils import read_params_file
 
 
 def find_latest_run(results_dir, n_components):
@@ -29,6 +29,20 @@ def find_latest_run(results_dir, n_components):
     return latest_run
 
 
+def _find_params_final_file(run_dir: Path) -> Path:
+    candidates = [
+        run_dir / "params_final.xlsx",
+        run_dir / "params_final.xls",
+        run_dir / "params_final.csv",
+    ]
+
+    for path in candidates:
+        if path.exists():
+            return path
+
+    raise FileNotFoundError(f"params_final non trovato in: {run_dir}")
+
+
 def load_completed_run(run_dir):
     """
     Carica una run già completata senza rieseguire il fit.
@@ -39,23 +53,22 @@ def load_completed_run(run_dir):
         raise FileNotFoundError(f"Run directory non trovata: {run_dir}")
 
     config_used_path = run_dir / "config_used.json"
-    params_final_path = run_dir / "params_final.csv"
     reconstruction_dir = run_dir / "reconstruction"
 
     if not config_used_path.exists():
         raise FileNotFoundError(f"config_used.json non trovato in: {run_dir}")
 
-    if not params_final_path.exists():
-        raise FileNotFoundError(f"params_final.csv non trovato in: {run_dir}")
+    params_final_path = _find_params_final_file(run_dir)
 
     reconstruction_dir.mkdir(parents=True, exist_ok=True)
 
     cfg = load_config(str(config_used_path))
 
+    # I path nel config usato sono relativi alla cartella configs/
     project_root = Path(__file__).resolve().parents[1]
     config_dir = project_root / "configs"
 
-    pack = read_params_csv(str(params_final_path))
+    pack = read_params_file(str(params_final_path))
 
     spectra_matrix_path = (config_dir / cfg["data"]["spectra_matrix_path"]).resolve()
     v_prime_path = (config_dir / cfg["data"]["V_prime_path"]).resolve()
@@ -82,6 +95,7 @@ def load_completed_run(run_dir):
         "spectral_matrix": spectral_matrix,
         "wavelengths": wavelengths,
     }
+
 
 def load_latest_completed_run(results_dir, n_components):
     """

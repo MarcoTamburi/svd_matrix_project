@@ -1,11 +1,10 @@
-# src/params_utils.py
-
 from dataclasses import dataclass
-from typing import Dict, List, Tuple
+from typing import Dict, List
 import numpy as np
 import pandas as pd
 
 ALLOWED_STAGE = {"1", "2", "both"}
+
 
 @dataclass
 class ParamPack:
@@ -18,13 +17,42 @@ class ParamPack:
     vary_full: np.ndarray
     stage_full: List[str]
 
-def read_params_csv(path: str) -> ParamPack:
-    df = pd.read_csv(path)
+
+def _read_params_table(path: str) -> pd.DataFrame:
+    path_lower = path.lower()
+
+    if path_lower.endswith(".xlsx") or path_lower.endswith(".xls"):
+        return pd.read_excel(path)
+    elif path_lower.endswith(".csv"):
+        return pd.read_csv(path)
+    else:
+        raise ValueError(
+            f"Formato file parametri non supportato: {path}. "
+            f"Usa .xlsx, .xls oppure .csv"
+        )
+
+
+def _write_params_table(df: pd.DataFrame, out_path: str) -> None:
+    path_lower = out_path.lower()
+
+    if path_lower.endswith(".xlsx") or path_lower.endswith(".xls"):
+        df.to_excel(out_path, index=False)
+    elif path_lower.endswith(".csv"):
+        df.to_csv(out_path, index=False)
+    else:
+        raise ValueError(
+            f"Formato file parametri non supportato: {out_path}. "
+            f"Usa .xlsx, .xls oppure .csv"
+        )
+
+
+def read_params_file(path: str) -> ParamPack:
+    df = _read_params_table(path)
 
     required = ["name", "value", "vary", "lower", "upper", "stage"]
     missing = [c for c in required if c not in df.columns]
     if missing:
-        raise ValueError(f"Missing columns in params CSV: {missing}")
+        raise ValueError(f"Missing columns in params file: {missing}")
 
     df["name"] = df["name"].astype(str).str.strip()
     df["stage"] = df["stage"].astype(str).str.strip().str.lower()
@@ -64,6 +92,7 @@ def read_params_csv(path: str) -> ParamPack:
         stage_full=stage,
     )
 
+
 def stage_free_mask(pack: ParamPack, stage: str) -> np.ndarray:
     if stage not in {"1", "2"}:
         raise ValueError("stage must be '1' or '2'")
@@ -76,26 +105,31 @@ def stage_free_mask(pack: ParamPack, stage: str) -> np.ndarray:
     free_mask = active & pack.vary_full
     return free_mask
 
+
 def extract_free(pack: ParamPack, free_mask: np.ndarray):
     x0_free = pack.x0_full[free_mask]
     lb_free = pack.lb_full[free_mask]
     ub_free = pack.ub_full[free_mask]
     return x0_free, lb_free, ub_free
 
+
 def inject_free(pack: ParamPack, free_mask: np.ndarray, x_free: np.ndarray) -> np.ndarray:
     x_full = pack.x0_full.copy()
     x_full[free_mask] = x_free
     return x_full
 
-def write_params_csv(pack: ParamPack, out_path: str, x_full: np.ndarray) -> None:
+
+def write_params_file(pack: ParamPack, out_path: str, x_full: np.ndarray) -> None:
     df_out = pack.df.copy()
     df_out["value"] = x_full
-    df_out.to_csv(out_path, index=False)
+    _write_params_table(df_out, out_path)
+
 
 def unpack_params(x_full: np.ndarray, name_to_i: Dict[str, int]) -> Dict[str, float]:
     return {k: float(x_full[i]) for k, i in name_to_i.items()}
 
-def update_pack_values(pack, updates: dict):
+
+def update_pack_values(pack: ParamPack, updates: dict):
     for name, value in updates.items():
         if name not in pack.name_to_i:
             raise KeyError(f"Parametro '{name}' non trovato nel ParamPack")

@@ -4,7 +4,7 @@
     "V_prime_path": "../data/V_prime.csv",
     "U_prime_path": "../data/U_prime.csv"
   },
-  "params_csv": "../params/params_fit3.csv",
+  "params_csv": "../params/params_fit3.xlsx",
   "output_dir": "../results/fit3_run",
   "fit": {
     "method": "trf",

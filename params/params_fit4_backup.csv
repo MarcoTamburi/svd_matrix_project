@@ -1,5 +1,5 @@
 name,value,vary,lower,upper,stage,note
-Tm1,298,1,293,329.5,1,thermo stage1
+Tm1,298,1,293,340,1,thermo stage1
 Tm2,308,1,300,360,1,thermo stage1
 Tm3,318,1,305,380,1,thermo stage1
 dH1,-20000,1,-50000,-1000,1,thermo stage1

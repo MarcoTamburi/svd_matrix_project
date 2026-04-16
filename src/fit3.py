@@ -5,11 +5,11 @@ from scipy.optimize import least_squares
 from sklearn.linear_model import LinearRegression
 
 from params_utils import (
-    read_params_csv,
+    read_params_file,
     stage_free_mask,
     extract_free,
     inject_free,
-    write_params_csv,
+    write_params_file,
     update_pack_values,
 )
 from io_utils import load_fit_inputs
@@ -129,27 +129,32 @@ def save_preprocessing_outputs(out_dir, wavelengths, preprocess_debug):
 
 def run_fit3(config_path: str, run_metadata: dict):
     cfg = load_config(config_path)
+    config_dir = Path(config_path).resolve().parent
 
     debug_enabled = cfg.get("debug", {}).get("enabled", False)
     save_preprocess_plots_flag = cfg.get("plots", {}).get("save_preprocess", True)
     save_final_fit_plots_flag = cfg.get("plots", {}).get("save_final_fit", True)
 
-    base_out_dir = Path(cfg["output_dir"])
+    base_out_dir = (config_dir / cfg["output_dir"]).resolve()
     base_out_dir.mkdir(parents=True, exist_ok=True)
 
     run_name = f"fit3_{run_metadata['run_timestamp'].replace(':', '-').replace(' ', '_')}"
     out_dir = base_out_dir / run_name
     out_dir.mkdir(parents=True, exist_ok=True)
-
     with open(out_dir / "config_used.json", "w", encoding="utf-8") as f:
         json.dump(cfg, f, indent=2)
 
-    pack = read_params_csv(cfg["params_csv"])
+    params_path = (config_dir / cfg["params_csv"]).resolve()
+    pack = read_params_file(str(params_path))
+
+    spectra_matrix_path = (config_dir / cfg["data"]["spectra_matrix_path"]).resolve()
+    v_prime_path = (config_dir / cfg["data"]["V_prime_path"]).resolve()
+    u_prime_path = (config_dir / cfg["data"]["U_prime_path"]).resolve()
 
     T, V_prime, U_prime, spectral_matrix, wavelengths = load_fit_inputs(
-        cfg["data"]["spectra_matrix_path"],
-        cfg["data"]["V_prime_path"],
-        cfg["data"]["U_prime_path"],
+        str(spectra_matrix_path),
+        str(v_prime_path),
+        str(u_prime_path)
     )
 
     preprocess_coeffs, preprocess_debug = estimate_edge_coefficients(
@@ -167,7 +172,7 @@ def run_fit3(config_path: str, run_metadata: dict):
 
     pack = update_pack_values(pack, preprocess_coeffs)
 
-    write_params_csv(pack, str(out_dir / "params_after_preprocess.csv"), pack.x0_full)
+    write_params_file(pack, str(out_dir / "params_after_preprocess.xlsx"), pack.x0_full)
 
     method = cfg.get("fit", {}).get("method", "trf")
     max_nfev = cfg.get("fit", {}).get("max_nfev", None)
@@ -220,7 +225,7 @@ def run_fit3(config_path: str, run_metadata: dict):
         print("Stage 1 cost:", res1.cost)
 
     x_full_1 = inject_free(pack, free_mask_1, res1.x)
-    write_params_csv(pack, str(out_dir / "params_after_stage1.csv"), x_full_1)
+    write_params_file(pack, str(out_dir / "params_after_stage1.xlsx"), x_full_1)
 
     if save_final_fit_plots_flag:
         save_stage1_fit_outputs(out_dir, T, V_prime, x_full_1, pack, predict_vprime_from_params)
@@ -268,7 +273,7 @@ def run_fit3(config_path: str, run_metadata: dict):
     dof = V_prime.size - len(res2.x)
     chi2_red = float(chi2 / dof) if dof > 0 else None
 
-    write_params_csv(pack, str(out_dir / "params_final.csv"), x_full_2)
+    write_params_file(pack, str(out_dir / "params_final.xlsx"), x_full_2)
 
     summary = {
         "run_timestamp": run_metadata["run_timestamp"],
