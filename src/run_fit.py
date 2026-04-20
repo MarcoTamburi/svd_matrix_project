@@ -3,6 +3,7 @@ from datetime import datetime
 
 from fit3 import run_fit3
 from fit4 import run_fit4
+from fit2 import run_fit2
 
 
 def run(config_path: str, n_components: int):
@@ -11,6 +12,8 @@ def run(config_path: str, n_components: int):
         "config_path": config_path,
         "n_components": n_components,
     }
+    if n_components == 2:
+        return run_fit2(config_path, run_metadata)
 
     if n_components == 3:
         return run_fit3(config_path, run_metadata)
@@ -20,3 +23,4 @@ def run(config_path: str, n_components: int):
 
     else:
         raise ValueError(f"Numero di componenti non supportato: {n_components}")
+    
