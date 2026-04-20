@@ -21,10 +21,27 @@ class ParamPack:
 def _read_params_table(path: str) -> pd.DataFrame:
     path_lower = path.lower()
 
-    if path_lower.endswith(".xlsx") or path_lower.endswith(".xls"):
-        return pd.read_excel(path)
+    if path_lower.endswith(".xlsx"):
+        try:
+            return pd.read_excel(path, engine="openpyxl")
+        except ImportError as e:
+            raise ImportError(
+                "Per leggere file .xlsx serve openpyxl. "
+                "Installa con: pip install openpyxl"
+            ) from e
+
+    elif path_lower.endswith(".xls"):
+        try:
+            return pd.read_excel(path, engine="xlrd")
+        except ImportError as e:
+            raise ImportError(
+                "Per leggere file .xls serve xlrd. "
+                "Installa con: pip install xlrd"
+            ) from e
+
     elif path_lower.endswith(".csv"):
         return pd.read_csv(path)
+
     else:
         raise ValueError(
             f"Formato file parametri non supportato: {path}. "
@@ -35,16 +52,28 @@ def _read_params_table(path: str) -> pd.DataFrame:
 def _write_params_table(df: pd.DataFrame, out_path: str) -> None:
     path_lower = out_path.lower()
 
-    if path_lower.endswith(".xlsx") or path_lower.endswith(".xls"):
-        df.to_excel(out_path, index=False)
+    if path_lower.endswith(".xlsx"):
+        try:
+            df.to_excel(out_path, index=False, engine="openpyxl")
+        except ImportError as e:
+            raise ImportError(
+                "Per scrivere file .xlsx serve openpyxl. "
+                "Installa con: pip install openpyxl"
+            ) from e
+
+    elif path_lower.endswith(".xls"):
+        raise ValueError(
+            "Scrittura .xls non supportata. Usa .xlsx oppure .csv"
+        )
+
     elif path_lower.endswith(".csv"):
         df.to_csv(out_path, index=False)
+
     else:
         raise ValueError(
             f"Formato file parametri non supportato: {out_path}. "
             f"Usa .xlsx, .xls oppure .csv"
         )
-
 
 def read_params_file(path: str) -> ParamPack:
     df = _read_params_table(path)

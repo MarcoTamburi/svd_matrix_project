@@ -15,7 +15,7 @@ def calc_M_2p(T, Tm1, Tm2, dH1, dH2):
     M2 = A / denom
     M3 = (A * B) / denom
 
-    return np.stack([M1, M2, M3], axis=0)  # shape (3, len(T))
+    return np.stack([M1, M2, M3], axis=0)
 
 
 def build_C_matrix(x_full, pack):
@@ -31,12 +31,22 @@ def build_C_matrix(x_full, pack):
     return C
 
 
-def predict_vprime_from_params(T, x_full, pack):
+def get_transition_temperatures(x_full, pack):
     def get(name):
         return float(x_full[pack.name_to_i[name]])
 
     Tm1 = get("Tm1")
-    Tm2 = get("Tm2")
+    dTm12 = get("dTm12")
+    Tm2 = Tm1 + dTm12
+
+    return Tm1, Tm2
+
+
+def predict_vprime_from_params(T, x_full, pack):
+    def get(name):
+        return float(x_full[pack.name_to_i[name]])
+
+    Tm1, Tm2 = get_transition_temperatures(x_full, pack)
     dH1 = get("dH1")
     dH2 = get("dH2")
 

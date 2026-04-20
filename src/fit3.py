@@ -275,6 +275,9 @@ def run_fit3(config_path: str, run_metadata: dict):
 
     write_params_file(pack, str(out_dir / "params_final.xlsx"), x_full_2)
 
+    Tm1 = final_params["Tm1"]
+    Tm2 = Tm1 + final_params["dTm12"]
+
     summary = {
         "run_timestamp": run_metadata["run_timestamp"],
         "config_path": run_metadata["config_path"],
@@ -293,6 +296,10 @@ def run_fit3(config_path: str, run_metadata: dict):
         "final_params": final_params,
         "chi2": chi2,
         "chi2_reduced": chi2_red,
+        "derived_transition_temperatures": {
+            "Tm1": Tm1,
+            "Tm2": Tm2,
+        },
     }
 
     with open(out_dir / "fit_summary.json", "w", encoding="utf-8") as f:

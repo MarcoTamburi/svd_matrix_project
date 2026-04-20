@@ -215,3 +215,89 @@ def compute_reconstruction_metrics_over_T(
         "mae": np.array(mae_values, dtype=float),
         "max_abs_error": np.array(max_abs_error_values, dtype=float),
     }
+
+import pandas as pd
+
+
+def build_transition_summary_df(x_full, pack):
+    """
+    Costruisce una tabella riassuntiva delle transizioni:
+    - Tm assolute (K e °C)
+    - Delta H
+
+    NON modifica nulla del modello o dei parametri salvati.
+    Serve solo per visualizzazione.
+    """
+    def get(name):
+        return float(x_full[pack.name_to_i[name]])
+
+    names = set(pack.names)
+    rows = []
+
+    # Caso con deltaTm (nuovo modello)
+    if "dTm12" in names:
+        Tm1 = get("Tm1")
+        dTm12 = get("dTm12")
+
+        Tm2 = Tm1 + dTm12
+
+        rows.append({
+            "Transition": "1",
+            "Tm (K)": Tm1,
+            "Tm (°C)": Tm1 - 273.15,
+            "ΔH (cal/mol)": get("dH1")
+        })
+
+        rows.append({
+            "Transition": "2",
+            "Tm (K)": Tm2,
+            "Tm (°C)": Tm2 - 273.15,
+            "ΔH (cal/mol)": get("dH2")
+        })
+
+        # Fit4
+        if "dTm23" in names:
+            dTm23 = get("dTm23")
+            Tm3 = Tm2 + dTm23
+
+            rows.append({
+                "Transition": "3",
+                "Tm (K)": Tm3,
+                "Tm (°C)": Tm3 - 273.15,
+                "ΔH (cal/mol)": get("dH3")
+            })
+
+    # Fallback (vecchio modello)
+    else:
+        if "Tm1" in names:
+            rows.append({
+                "Transition": "1",
+                "Tm (K)": get("Tm1"),
+                "Tm (°C)": get("Tm1") - 273.15,
+                "ΔH (cal/mol)": get("dH1")
+            })
+
+        if "Tm2" in names:
+            rows.append({
+                "Transition": "2",
+                "Tm (K)": get("Tm2"),
+                "Tm (°C)": get("Tm2") - 273.15,
+                "ΔH (cal/mol)": get("dH2")
+            })
+
+        if "Tm3" in names:
+            rows.append({
+                "Transition": "3",
+                "Tm (K)": get("Tm3"),
+                "Tm (°C)": get("Tm3") - 273.15,
+                "ΔH (cal/mol)": get("dH3")
+            })
+
+    df = pd.DataFrame(rows)
+
+    # opzionale: arrotondamento più leggibile
+    df["Tm (K)"] = df["Tm (K)"].round(2)
+    df["Tm (°C)"] = df["Tm (°C)"].round(2)
+    df["ΔH (cal/mol)"] = df["ΔH (cal/mol)"].round(2)
+
+    return df
