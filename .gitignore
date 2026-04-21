@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.py[cod]
 
 # Virtual environments
 .venv/
@@ -25,6 +26,23 @@ data/
 
 # VS Code
 .vscode/
+.idea/
 
 # Notebooks vecchio
 notebooks/crea_matrice_conT.ipynb
+
+# build artifacts
+build/
+dist/
+*.egg-info/
+
+# optional local data exports
+data/validated_spectral_matrix.csv
+data/dati_puliti.csv
+data/U_prime.csv
+data/V_prime.csv
+
+# optional session cache if you do not want to version it
+# configs/session_config.json
+
+configs/session_config.json
