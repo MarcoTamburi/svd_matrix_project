@@ -1,108 +1,212 @@
-DESCRIZIONE (ITALIANO)
+# CD SVD Matrix Project
 
+## Overview
 
-Questo software permette l’analisi di dati di Circular Dichroism (CD) combinando:
-Decomposizione SVD (Singular Value Decomposition)
-Modelli termodinamici (unfolding a 2, 3 o 4 stati)
-Ricostruzione spettrale e validazione del modello
-L’obiettivo è fornire una pipeline modulare, riproducibile e user-friendly per analisi spettroscopiche avanzate.
+This project provides a modular Python pipeline for the analysis of Circular Dichroism (CD) data using:
 
-WORKFLOW
-Il workflow è diviso in tre notebook principali.
--01_n_components.ipynb
-Preparazione dati
-Costruzione matrice spettrale
-SVD
-Scelta numero componenti
-Salvataggio:
-U_prime.csv
-V_prime.csv
-session_config.json
-Questo step va eseguito quando cambiano i dati o il numero di componenti.
--02_run_fit.ipynb
-Esecuzione fit termodinamico
-Salvataggio risultati in:
-results/fit3_run/fit3_<timestamp>/
-Contiene:
-parametri finali
-configurazione usata
-output del fit
-Questo step genera una nuova run completa e riproducibile.
--03_spectral_reconstruction.ipynb
-Carica automaticamente l’ultima run disponibile
-Ricostruisce:
-spettri puri
-popolazioni
-spettri completi
-Confronta dati sperimentali vs modello
-Calcola metriche di errore
-Questo step NON riesegue il fit.
-Serve per analisi, validazione e visualizzazione.
+* Singular Value Decomposition (SVD)
+* Thermodynamic unfolding models (2, 3, and 4 states)
+* Spectral reconstruction and model validation
 
-STRUTTURA DEL PROGETTO
-src/ → motore del software
-notebooks/ → interfaccia utente
-configs/ → configurazioni statiche
-data/ → dati e output intermedi
-results/ → risultati delle run
+Unlike traditional pipelines based on raw instrument files, this version is **matrix-driven**:
+the user provides a pre-built spectral matrix, and the software handles decomposition, fitting, and reconstruction.
 
-NOTE IMPORTANTI
-Ogni run è salvata separatamente (riproducibilità completa)
-Il notebook di reconstruction non rilancia il fit
-I dati sono separati da configurazioni e risultati
-Tutti i risultati sono tracciabili tramite cartelle timestampate
+The goal is to offer a **reproducible, user-friendly, and extensible framework** suitable for advanced spectroscopic analysis.
 
-------------------------------------------------------------------------
+---
 
-DESCRIPTION (ENGLISH)
+## Project Structure
 
+```
+svd_matrix_project/
+├── src/                # Core computational modules
+├── notebooks/          # User interface (step-by-step workflow)
+├── configs/            # Configuration files
+├── params/             # Editable model parameters
+├── data/               # Input data and intermediate files
+├── results/            # Output of fitting runs
+├── README.md
+```
 
-This software performs Circular Dichroism (CD) data analysis by combining:
-Singular Value Decomposition (SVD)
-Thermodynamic unfolding models (2-state / 3-state)
-Spectral reconstruction and validation
-The goal is to provide a modular, reproducible and user-friendly pipeline.
+---
 
-WORKFLOW
-The workflow is divided into three main notebooks.
--01_n_components.ipynb
-Data preparation
-Spectral matrix construction
-SVD decomposition
-Component selection
-Saves:
-U_prime.csv
-V_prime.csv
-session_config.json
-Run this step when data or number of components changes.
--02_run_fit.ipynb
-Runs thermodynamic fitting
-Saves results in:
-results/fit3_run/fit3_<timestamp>/
-Includes:
-fitted parameters
-config snapshot
-fit outputs
-Each execution creates a new reproducible run.
-03_spectral_reconstruction.ipynb
-Automatically loads latest run
-Reconstructs:
-state spectra
-populations
-full spectra
-Compares experimental vs model
-Computes error metrics
-This step does NOT rerun the fit.
+## Input Data Format
 
-PROJECT STRUCTURE
-src/ → core engine
-notebooks/ → user interface
-configs/ → static configs
-data/ → processed data
-results/ → fit outputs
+The software expects a spectral matrix in CSV format:
 
-KEY FEATURES
-Fully reproducible runs
-Decoupled fitting and reconstruction
-Modular architecture
-Suitable for publication-level analysis
+* First column: `Wavelength`
+* Remaining columns: temperatures (numeric)
+* Values: CD signal
+
+Example:
+
+```
+Wavelength,20,25,30,35
+220,-3.1,-2.8,-2.4,-1.9
+221,-3.0,-2.7,-2.3,-1.8
+```
+
+This file should be placed in:
+
+```
+data/user_spectral_matrix.csv
+```
+
+---
+
+## Workflow
+
+The pipeline is organized into three notebooks.
+
+### 1. `01_n_components.ipynb`
+
+* Loads and validates the input matrix
+* Performs SVD decomposition
+* Allows selection of number of components
+* Saves:
+
+  * `U_prime.csv`
+  * `V_prime.csv`
+  * `configs/session_config.json`
+
+This step must be executed when:
+
+* the input matrix changes
+* the number of components is redefined
+
+---
+
+### 2. `02_run_fit.ipynb`
+
+* Reads `session_config.json`
+* Automatically selects the correct model:
+
+  * 2-state
+  * 3-state
+  * 4-state
+* Runs the thermodynamic fit
+* Saves results in:
+
+```
+results/fit{n}_run/fit{n}_<timestamp>/
+```
+
+Each run includes:
+
+* fitted parameters
+* configuration snapshot
+* fit diagnostics and plots
+
+---
+
+### 3. `03_spectral_reconstruction.ipynb`
+
+* Loads the latest completed run
+* Reconstructs:
+
+  * pure state spectra
+  * populations vs temperature
+  * full spectra
+* Compares experimental vs reconstructed data
+* Computes error metrics
+
+This step does **not** rerun the fit.
+
+---
+
+## Models
+
+The following thermodynamic models are implemented:
+
+### 2-state model
+
+```
+S1 ⇌ S2
+```
+
+Parameters:
+
+* Tm1
+* ΔH1
+
+---
+
+### 3-state model (sequential)
+
+```
+S1 ⇌ S2 ⇌ S3
+```
+
+Parameters:
+
+* Tm1
+* dTm12
+* ΔH1, ΔH2
+
+---
+
+### 4-state model (sequential)
+
+```
+S1 ⇌ S2 ⇌ S3 ⇌ S4
+```
+
+Parameters:
+
+* Tm1
+* dTm12, dTm23
+* ΔH1, ΔH2, ΔH3
+
+---
+
+## Key Features
+
+* Matrix-based input (no dependency on raw instrument files)
+* Modular architecture (clear separation between interface and core logic)
+* Reproducible runs (each fit stored with full configuration)
+* Flexible parameter handling (CSV/XLSX editable)
+* Generalized pipeline for multiple thermodynamic models
+
+---
+
+## Design Philosophy
+
+* Notebooks are used as user interface only
+* All scientific logic is implemented in `src/`
+* Data, configuration, and results are strictly separated
+
+The development follows a clear priority:
+
+1. Software robustness and reproducibility
+2. Numerical stability of the fit
+3. Physical interpretability of results
+
+---
+
+## Requirements
+
+* Python 3.10+
+* numpy
+* pandas
+* scipy
+* scikit-learn
+* matplotlib
+* openpyxl
+* ipywidgets
+
+---
+
+## Future Work
+
+* Validation and tuning of the 4-state model
+* Full integration of the 2-state model in reconstruction
+* Improved numerical stability and uncertainty estimation
+* Extended support for automated analysis workflows
+
+---
+
+## Author
+
+Marco Tamburi
+MSc Physics – Data Analysis & Scientific Computing
+
