@@ -1,6 +1,6 @@
 {
   "data": {
-    "spectra_matrix_path": "../data/matrice_con_t.dat",
+    "spectra_matrix_path": "../data/user_spectral_matrix.csv",
     "V_prime_path": "../data/V_prime.csv",
     "U_prime_path": "../data/U_prime.csv"
   },
