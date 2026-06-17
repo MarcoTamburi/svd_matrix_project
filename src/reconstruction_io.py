@@ -5,29 +5,53 @@ from io_utils import load_fit_inputs
 from params_utils import read_params_file
 
 
-def find_latest_run(results_dir, n_components):
+def find_latest_run(results_root):
     """
-    Trova la run più recente dentro results/fit{n_components}_run.
+    Trova la run completata più recente dentro:
+    results/fit2_run/
+    results/fit3_run/
+    results/fit4_run/
     """
-    results_dir = Path(results_dir)
+    results_root = Path(results_root)
 
-    if not results_dir.exists():
-        raise FileNotFoundError(f"Results directory non trovata: {results_dir}")
+    if not results_root.exists():
+        raise FileNotFoundError(f"Results root non trovata: {results_root}")
 
-    prefix = f"fit{n_components}_"
-    run_dirs = [
-        p for p in results_dir.iterdir()
-        if p.is_dir() and p.name.startswith(prefix)
-    ]
+    run_dirs = []
+
+    for fit_dir in results_root.glob("fit*_run"):
+        if not fit_dir.is_dir():
+            continue
+
+        for run_dir in fit_dir.iterdir():
+            if (
+                run_dir.is_dir()
+                and (run_dir / "config_used.json").exists()
+                and (
+                    (run_dir / "params_final.xlsx").exists()
+                    or (run_dir / "params_final.xls").exists()
+                    or (run_dir / "params_final.csv").exists()
+                )
+            ):
+                run_dirs.append(run_dir)
 
     if not run_dirs:
         raise FileNotFoundError(
-            f"Nessuna cartella di run trovata in: {results_dir}"
+            f"Nessuna run completata trovata dentro: {results_root}"
         )
 
     latest_run = max(run_dirs, key=lambda p: p.stat().st_mtime)
     return latest_run
 
+
+
+def load_latest_completed_run(results_root):
+    """
+    Trova e carica automaticamente l'ultima run completata,
+    indipendentemente dal numero di componenti.
+    """
+    latest_run_dir = find_latest_run(results_root)
+    return load_completed_run(latest_run_dir)
 
 def _find_params_final_file(run_dir: Path) -> Path:
     candidates = [
@@ -96,10 +120,3 @@ def load_completed_run(run_dir):
         "wavelengths": wavelengths,
     }
 
-
-def load_latest_completed_run(results_dir, n_components):
-    """
-    Trova e carica automaticamente la run più recente per il numero di componenti scelto.
-    """
-    latest_run_dir = find_latest_run(results_dir, n_components)
-    return load_completed_run(latest_run_dir)

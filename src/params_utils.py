@@ -87,6 +87,13 @@ def read_params_file(path: str) -> ParamPack:
     df["stage"] = df["stage"].astype(str).str.strip().str.lower()
     df["vary"] = df["vary"].astype(int)
 
+    # NUOVO: forza float, altrimenti se nel file Excel tutti i valori della
+    # colonna sono "interi" (es. 330, -25000, 0...) pandas legge int64 e poi
+    # crasha quando si tenta di scrivere un coefficiente float (es. preprocessing)
+    df["value"] = df["value"].astype(float)
+    df["lower"] = df["lower"].astype(float)
+    df["upper"] = df["upper"].astype(float)
+
     bad_stage = sorted(set(df["stage"]) - ALLOWED_STAGE)
     if bad_stage:
         raise ValueError(f"Invalid stage values: {bad_stage}")
