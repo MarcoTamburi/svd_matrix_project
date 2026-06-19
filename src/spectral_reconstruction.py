@@ -8,6 +8,10 @@ from model_fit4 import (
     build_C_matrix as build_C_matrix_fit4,
     predict_vprime_from_params as predict_vprime_from_params_fit4,
 )
+from model_fit2 import (
+    build_C_matrix as build_C_matrix_fit2,
+    predict_vprime_from_params as predict_vprime_from_params_fit2,
+)
 
 
 def get_n_components_from_pack(pack):
@@ -23,15 +27,16 @@ def get_n_components_from_pack(pack):
         j = int(name[2])
         max_index = max(max_index, i, j)
 
-    if max_index not in (3, 4):
-        raise ValueError(f"Numero di componenti non supportato nella reconstruction: {max_index}")
+    if max_index not in (2, 3, 4):
+    raise ValueError(f"Numero di componenti non supportato nella reconstruction: {max_index}")
 
     return max_index
 
 
 def get_model_functions(pack):
     n_components = get_n_components_from_pack(pack)
-
+    if n_components == 2:
+        return build_C_matrix_fit2, predict_vprime_from_params_fit2
     if n_components == 3:
         return build_C_matrix_fit3, predict_vprime_from_params_fit3
     elif n_components == 4:
