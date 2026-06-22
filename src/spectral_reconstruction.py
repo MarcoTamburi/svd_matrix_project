@@ -28,7 +28,7 @@ def get_n_components_from_pack(pack):
         max_index = max(max_index, i, j)
 
     if max_index not in (2, 3, 4):
-    raise ValueError(f"Numero di componenti non supportato nella reconstruction: {max_index}")
+        raise ValueError(f"Numero di componenti non supportato nella reconstruction: {max_index}")
 
     return max_index
 

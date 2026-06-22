@@ -105,8 +105,8 @@ def save_preprocessing_outputs(out_dir, wavelengths, preprocess_debug):
     unfolded_df.to_csv(out_dir / "preprocess_unfolded_data.csv", index=False)
 
     plt.figure(figsize=(10, 5))
-    plt.plot(wavelengths, folded_original[::-1], label="original folded spectrum", marker="o")
-    plt.plot(wavelengths, folded_predicted[::-1], label="predicted folded spectrum")
+    plt.plot(wavelengths, folded_original, label="original folded spectrum", marker="o")
+    plt.plot(wavelengths, folded_predicted, label="predicted folded spectrum")
     plt.title("Preprocessing - Folded spectrum")
     plt.xlabel("Wavelength (nm)")
     plt.ylabel("Absorbance")
@@ -117,8 +117,8 @@ def save_preprocessing_outputs(out_dir, wavelengths, preprocess_debug):
     plt.close()
 
     plt.figure(figsize=(10, 5))
-    plt.plot(wavelengths, unfolded_original[::-1], label="original unfolded spectrum", marker="o")
-    plt.plot(wavelengths, unfolded_predicted[::-1], label="predicted unfolded spectrum")
+    plt.plot(wavelengths, unfolded_original, label="original unfolded spectrum", marker="o")
+    plt.plot(wavelengths, unfolded_predicted, label="predicted unfolded spectrum")
     plt.title("Preprocessing - Unfolded spectrum")
     plt.xlabel("Wavelength (nm)")
     plt.ylabel("Absorbance")
@@ -309,5 +309,14 @@ def run_fit4(config_path: str, run_metadata: dict):
 
     with open(out_dir / "fit_summary.json", "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
+
+    # DEBUG - metti qui
+    print(">>> LEGGO MATRICE DA:", spectra_matrix_path)
+    print(">>> T prime 5:", T[:5] - 273.15, "°C")
+    print(">>> wavelengths prime 5:", wavelengths[:5])
+    print(">>> folded_original[0]:", preprocess_debug["folded_original"][0])
+    print(">>> spectral_matrix[0,0]:", spectral_matrix[0, 0])
+    print(">>> picco folded a:", wavelengths[preprocess_debug["folded_original"].argmax()], "nm")
+
 
     return x_full_2, summary
